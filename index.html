@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>index</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f6f7fb;--card:#fff;--tx:#1b1f2a;--mu:#5d6577;--bd:#dde1ea;--ac:#2563eb;--c1:#e0701a;--c2:#2563eb;--ok:#15803d}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#12141a;--card:#1b1e27;--tx:#e8eaf0;--mu:#9aa3b5;--bd:#303544;--ac:#6ea0ff;--c1:#ff9a4d;--c2:#6ea0ff;--ok:#4ade80}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#12141a;--card:#1b1e27;--tx:#e8eaf0;--mu:#9aa3b5;--bd:#303544;--ac:#6ea0ff;--c1:#ff9a4d;--c2:#6ea0ff;--ok:#4ade80}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:1000px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:1.5rem;margin:.2em 0}h2{font-size:1.1rem;margin:0 0 .6em}
+.sub{color:var(--mu);margin:0 0 18px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+label{display:block;font-size:.82rem;color:var(--mu);margin-bottom:3px}
+input{width:100%;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit}
+button{background:var(--ac);color:#fff;border:0;border-radius:8px;padding:10px 18px;font:inherit;font-weight:600;cursor:pointer}
+button.alt{background:transparent;color:var(--ac);border:1px solid var(--ac)}
+button:disabled{opacity:.6;cursor:wait}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center}
+.msg{color:#c0392b;font-size:.88rem}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numeric:tabular-nums}
+th,td{padding:7px 10px;border-bottom:1px solid var(--bd);text-align:right;white-space:nowrap}
+th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
+th{color:var(--mu);font-weight:600}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.cv{position:relative;height:300px}
+pre{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:10px;overflow-x:auto;margin:0;font-size:.85rem;white-space:pre-wrap}
+.res{color:var(--ok);font-weight:600}
+.hide{display:none}
+details summary{cursor:pointer;font-weight:600}
+code{background:var(--bg);padding:1px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+<main>
+<h1>Ex. No. 1: Skip List vs AVL Tree</h1>
+<p class="sub">Implement skip lists and measure performance compared with a balanced BST (AVL). Enter parameters, run the benchmark, and read the table and charts.</p>
+
+<div class="card">
+<h2>Aim</h2>
+<p style="margin:0">To implement a skip list and an AVL tree as ordered dictionaries and compare their empirical performance (time and key comparisons) for insert, search and delete on random workloads.</p>
+</div>
+
+<div class="card">
+<h2>Inputs</h2>
+<div class="grid">
+<div><label for="sizes">Key-set sizes n (comma separated)</label><input id="sizes" value="10000, 50000, 100000"></div>
+<div><label for="p">Skip-list probability p (0 to 1)</label><input id="p" type="number" step="0.05" min="0.05" max="0.95" value="0.5"></div>
+<div><label for="ml">Max level</label><input id="ml" type="number" min="1" max="32" value="20"></div>
+<div><label for="seed">Random seed</label><input id="seed" type="number" value="42"></div>
+<div><label for="frac">Search/delete fraction of n</label><input id="frac" type="number" step="0.1" min="0.1" max="1" value="0.5"></div>
+</div>
+<div class="row">
+<button id="run">Run benchmark</button>
+<button id="reset" class="alt">Reset defaults</button>
+<span id="err" class="msg"></span><span id="prog" style="color:var(--mu)"></span>
+</div>
+</div>
+
+<div id="out" class="hide">
+<div class="card"><h2>Output: benchmark table</h2>
+<div class="scroll"><table id="tbl"><thead><tr><th>n</th><th>Operation</th><th>SkipList (ms)</th><th>AVL (ms)</th><th>SL cmp/op</th><th>AVL cmp/op</th></tr></thead><tbody></tbody></table></div>
+</div>
+<div class="card"><h2>Graphical analysis</h2>
+<div class="charts">
+<div><div class="cv"><canvas id="c1"></canvas></div></div>
+<div><div class="cv"><canvas id="c2"></canvas></div></div>
+</div>
+<p id="ana" style="margin:12px 0 0"></p>
+</div>
+<div class="card"><h2>Result</h2><p id="result" style="margin:0"></p></div>
+</div>
+
+<div class="card">
+<h2>Skip list demo: range query</h2>
+<div class="grid">
+<div><label for="dn">Number of random keys</label><input id="dn" type="number" min="1" max="5000" value="200"></div>
+<div><label for="dmax">Keys drawn from 1 to</label><input id="dmax" type="number" min="10" value="1000"></div>
+<div><label for="lo">Range low</label><input id="lo" type="number" value="100"></div>
+<div><label for="hi">Range high</label><input id="hi" type="number" value="160"></div>
+</div>
+<div class="row"><button id="demo">Run demo</button></div>
+<pre id="demoOut" class="hide" style="margin-top:12px"></pre>
+</div>
+
+<div class="card">
+<details><summary>Algorithm (pseudocode)</summary>
+<pre style="margin-top:10px">SkipList-Search(L, key): x ← header
+  for i ← L.level downto 0: while x.fwd[i] ≠ NIL and x.fwd[i].key &lt; key: x ← x.fwd[i]
+  x ← x.fwd[0]; return x if x.key = key else NIL
+
+Random-Level(p, Max): lvl ← 0; while Random() &lt; p and lvl &lt; Max: lvl++; return lvl
+
+SkipList-Insert: find update[]; if key exists, update value; else
+  lvl ← Random-Level; raise L.level if needed; splice new node at levels 0..lvl
+
+SkipList-Delete: find update[] and x; unlink x at each level; lower L.level while top level empty
+
+AVL-Insert(T, key): BST insert, then Rebalance(T) on the way back up
+Rebalance(z): update height; b ← h(left) − h(right)
+  if b &gt; 1: (LR case: rotate left child) rotate right
+  if b &lt; −1: (RL case: rotate right child) rotate left</pre>
+</details>
+</div>
+</main>
+
+<script>
+"use strict";
+// ---------- seeded RNG ----------
+let rnd = Math.random;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+// ---------- Skip List ----------
+class SLNode{constructor(k,v,l){this.key=k;this.val=v;this.fwd=new Array(l+1).fill(null)}}
+class SkipList{
+  constructor(max=20,p=0.5){this.MAX=max;this.p=p;this.level=0;this.head=new SLNode(null,null,max);this.size=0;this.cmp=0}
+  randLevel(){let l=0;while(rnd()<this.p&&l<this.MAX)l++;return l}
+  findUpdate(key){
+    const upd=new Array(this.MAX+1);let x=this.head;
+    for(let i=this.level;i>=0;i--){
+      while(x.fwd[i]!==null&&x.fwd[i].key<key){this.cmp++;x=x.fwd[i]}
+      this.cmp++;upd[i]=x;
+    }
+    return [upd,x.fwd[0]];
+  }
+  insert(key,val){
+    const [upd,x]=this.findUpdate(key);
+    if(x!==null&&x.key===key){x.val=val;return}
+    const lvl=this.randLevel();
+    if(lvl>this.level){for(let i=this.level+1;i<=lvl;i++)upd[i]=this.head;this.level=lvl}
+    const n=new SLNode(key,val,lvl);
+    for(let i=0;i<=lvl;i++){n.fwd[i]=upd[i].fwd[i];upd[i].fwd[i]=n}
+    this.size++;
+  }
+  search(key){
+    let x=this.head;
+    for(let i=this.level;i>=0;i--){
+      while(x.fwd[i]!==null&&x.fwd[i].key<key){this.cmp++;x=x.fwd[i]}
+      this.cmp++;
+    }
+    x=x.fwd[0];return x!==null&&x.key===key?x.val:null;
+  }
+  delete(key){
+    const [upd,x]=this.findUpdate(key);
+    if(x===null||x.key!==key)return false;
+    for(let i=0;i<=this.level;i++){if(upd[i].fwd[i]!==x)break;upd[i].fwd[i]=x.fwd[i]}
+    while(this.level>0&&this.head.fwd[this.level]===null)this.level--;
+    this.size--;return true;
+  }
+  range(lo,hi){
+    let x=this.head;
+    for(let i=this.level;i>=0;i--)while(x.fwd[i]!==null&&x.fwd[i].key<lo)x=x.fwd[i];
+    x=x.fwd[0];const out=[];
+    while(x!==null&&x.key<=hi){out.push(x.key);x=x.fwd[0]}
+    return out;
+  }
+}
+
+// ---------- AVL Tree ----------
+class AVLNode{constructor(k,v){this.key=k;this.val=v;this.left=null;this.right=null;this.h=1}}
+const H=n=>n?n.h:0, updH=n=>{n.h=1+Math.max(H(n.left),H(n.right))}, bal=n=>H(n.left)-H(n.right);
+function rotR(z){const y=z.left;z.left=y.right;y.right=z;updH(z);updH(y);return y}
+function rotL(z){const y=z.right;z.right=y.left;y.left=z;updH(z);updH(y);return y}
+function rebalance(n){
+  updH(n);const b=bal(n);
+  if(b>1){if(bal(n.left)<0)n.left=rotL(n.left);return rotR(n)}
+  if(b<-1){if(bal(n.right)>0)n.right=rotR(n.right);return rotL(n)}
+  return n;
+}
+class AVL{
+  constructor(){this.root=null;this.cmp=0}
+  insert(k,v){this.root=this._ins(this.root,k,v)}
+  _ins(n,k,v){
+    if(!n)return new AVLNode(k,v);
+    this.cmp++;
+    if(k<n.key)n.left=this._ins(n.left,k,v);
+    else if(k>n.key)n.right=this._ins(n.right,k,v);
+    else{n.val=v;return n}
+    return rebalance(n);
+  }
+  search(k){
+    let n=this.root;
+    while(n){this.cmp++;if(k===n.key)return n.val;n=k<n.key?n.left:n.right}
+    return null;
+  }
+  delete(k){this.root=this._del(this.root,k)}
+  _del(n,k){
+    if(!n)return null;
+    this.cmp++;
+    if(k<n.key)n.left=this._del(n.left,k);
+    else if(k>n.key)n.right=this._del(n.right,k);
+    else{
+      if(!n.left||!n.right)return n.left||n.right;
+      let s=n.right;while(s.left)s=s.left;
+      n.key=s.key;n.val=s.val;n.right=this._del(n.right,s.key);
+    }
+    return rebalance(n);
+  }
+}
+
+// ---------- helpers ----------
+const $=id=>document.getElementById(id);
+const sleep=()=>new Promise(r=>setTimeout(r,0));
+function timeit(fn,keys){const t=performance.now();for(const k of keys)fn(k);return performance.now()-t}
+function sample(N,range,count){ // distinct random ints in [1, range)
+  const s=new Set();while(s.size<count)s.add(1+Math.floor(rnd()*(range-1)));return [...s];
+}
+function shuffleTake(arr,m){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a.slice(0,m)}
+const f1=x=>x.toFixed(1);
+let charts=[];
+
+function readInputs(){
+  const sizes=$("sizes").value.split(/[\s,]+/).filter(Boolean).map(Number);
+  if(!sizes.length||sizes.some(n=>!Number.isInteger(n)||n<10||n>500000))return {err:"Sizes must be integers between 10 and 500000."};
+  const p=parseFloat($("p").value),ml=parseInt($("ml").value),seed=parseInt($("seed").value),frac=parseFloat($("frac").value);
+  if(!(p>0&&p<1))return {err:"p must be between 0 and 1."};
+  if(!(ml>=1&&ml<=32))return {err:"Max level must be between 1 and 32."};
+  if(isNaN(seed))return {err:"Seed must be a number."};
+  if(!(frac>0&&frac<=1))return {err:"Fraction must be in (0, 1]."};
+  return {sizes:[...new Set(sizes)].sort((a,b)=>a-b),p,ml,seed,frac};
+}
+
+async function runBench(){
+  $("err").textContent="";
+  const inp=readInputs();
+  if(inp.err){$("err").textContent=inp.err;return}
+  const {sizes,p,ml,seed,frac}=inp;
+  rnd=mulberry32(seed);
+  $("run").disabled=true;
+  const tb=$("tbl").querySelector("tbody");tb.innerHTML="";
+  const data=[];
+  for(const N of sizes){
+    $("prog").textContent="Running n = "+N+" ...";await sleep();
+    const keys=sample(N,10*N,N),probe=shuffleTake(keys,Math.max(1,Math.round(N*frac)));
+    const sl=new SkipList(ml,p),avl=new AVL();
+    const ops=[["insert",k=>sl.insert(k,k),k=>avl.insert(k,k),keys],["search",k=>sl.search(k),k=>avl.search(k),probe],["delete",k=>sl.delete(k),k=>avl.delete(k),probe]];
+    const row={N};
+    for(const [op,sf,af,d] of ops){
+      sl.cmp=avl.cmp=0;
+      const ts=timeit(sf,d),ta=timeit(af,d);
+      const r={ts,ta,cs:sl.cmp/d.length,ca:avl.cmp/d.length};row[op]=r;
+      const tr=document.createElement("tr");
+      tr.innerHTML=`<td>${N}</td><td>${op}</td><td>${f1(ts)}</td><td>${f1(ta)}</td><td>${f1(r.cs)}</td><td>${f1(r.ca)}</td>`;
+      tb.appendChild(tr);
+    }
+    data.push(row);await sleep();
+  }
+  $("prog").textContent="";$("run").disabled=false;
+  $("out").classList.remove("hide");
+  drawCharts(data,p);
+  summarize(data,p);
+}
+
+function drawCharts(data,p){
+  charts.forEach(c=>c.destroy());charts=[];
+  const css=getComputedStyle(document.documentElement);
+  const c1=css.getPropertyValue("--c1").trim(),c2=css.getPropertyValue("--c2").trim(),tx=css.getPropertyValue("--tx").trim(),bd=css.getPropertyValue("--bd").trim(),mu=css.getPropertyValue("--mu").trim();
+  Chart.defaults.color=mu;Chart.defaults.borderColor=bd;
+  const big=data[data.length-1];
+  charts.push(new Chart($("c1"),{type:"bar",
+    data:{labels:["insert","search","delete"],datasets:[
+      {label:"Skip list",data:["insert","search","delete"].map(o=>big[o].ts),backgroundColor:c1},
+      {label:"AVL tree",data:["insert","search","delete"].map(o=>big[o].ta),backgroundColor:c2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:"Operation time at n = "+big.N,color:tx},legend:{labels:{color:tx}}},scales:{y:{title:{display:true,text:"time (ms)"}}}}}));
+  const ns=data.map(d=>d.N);
+  const lg=Math.log2,lp=n=>Math.log(n)/Math.log(1/p)/p;
+  charts.push(new Chart($("c2"),{type:"line",
+    data:{labels:ns,datasets:[
+      {label:"Skip list (measured)",data:data.map(d=>d.search.cs),borderColor:c1,backgroundColor:c1,tension:.2},
+      {label:"AVL (measured)",data:data.map(d=>d.search.ca),borderColor:c2,backgroundColor:c2,tension:.2},
+      {label:"log2 n",data:ns.map(lg),borderColor:c2,borderDash:[5,4],pointRadius:0},
+      {label:"(log_(1/p) n)/p",data:ns.map(lp),borderColor:c1,borderDash:[5,4],pointRadius:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:"Comparisons per search vs n",color:tx},legend:{labels:{color:tx}}},
+      scales:{x:{type:"logarithmic",title:{display:true,text:"n (log scale)"},afterBuildTicks:a=>{a.ticks=ns.map(v=>({value:v}))},ticks:{callback:v=>v}},y:{title:{display:true,text:"comparisons / search"}}}}}));
+}
+
+function summarize(data,p){
+  const b=data[data.length-1],N=b.N;
+  const f=(a,c)=>a<c?"faster":"slower";
+  const insW=b.insert.ts<b.insert.ta?"skip list":"AVL tree";
+  const delW=b.delete.ts<b.delete.ta?"skip list":"AVL tree";
+  const seaW=b.search.ts<b.search.ta?"skip list":"AVL tree";
+  $("ana").innerHTML=`<b>Analysis:</b> At n = ${N}, insert is faster with the <b>${insW}</b> (${f1(b.insert.ts)} ms vs ${f1(b.insert.ta)} ms), delete with the <b>${delW}</b> (${f1(b.delete.ts)} ms vs ${f1(b.delete.ta)} ms), and search with the <b>${seaW}</b> (${f1(b.search.ts)} ms vs ${f1(b.search.ta)} ms). Search comparisons grow linearly on the log n-axis for both structures, confirming O(log n). Theory predicts about log<sub>2</sub> n = ${Math.log2(N).toFixed(1)} for a balanced tree (AVL height is at most 1.44 log<sub>2</sub> n) and (log<sub>1/p</sub> n)/p = ${(Math.log(N)/Math.log(1/p)/p).toFixed(1)} for the skip list with p = ${p}; measured values are ${f1(b.search.ca)} and ${f1(b.search.cs)}.`;
+  const ratio=b.search.cs/b.search.ca;
+  $("result").innerHTML=`<span class="res">The skip list and AVL tree were implemented and benchmarked successfully.</span> Comparisons per operation grow logarithmically for both. The skip list used about ${ratio.toFixed(1)}× the comparisons of the AVL tree per search. The skip list is rotation-free and supports ordered range queries by a simple level-0 walk, while the AVL tree has the smaller, deterministic height. (Timings vary with your browser and device.)`;
+}
+
+function runDemo(){
+  const n=parseInt($("dn").value),mx=parseInt($("dmax").value),lo=parseInt($("lo").value),hi=parseInt($("hi").value);
+  const o=$("demoOut");o.classList.remove("hide");
+  if(!(n>=1&&mx>=n+1&&!isNaN(lo)&&!isNaN(hi))){o.textContent="Enter valid numbers (keys must be fewer than the maximum value).";return}
+  rnd=mulberry32(parseInt($("seed").value)||42);
+  const p=parseFloat($("p").value)||0.5,ml=parseInt($("ml").value)||20;
+  const sl=new SkipList(ml,p);
+  const ks=sample(mx,mx+1,Math.min(n,mx));
+  ks.forEach(k=>sl.insert(k,k));
+  const r=sl.range(lo,hi);
+  o.textContent=`Keys inserted     : ${sl.size}\nSkip list levels  : ${sl.level+1}\nRange query [${lo}, ${hi}] -> ${r.length} keys\n[${r.join(", ")}]`;
+}
+
+$("run").onclick=runBench;
+$("demo").onclick=runDemo;
+$("reset").onclick=()=>{$("sizes").value="10000, 50000, 100000";$("p").value=0.5;$("ml").value=20;$("seed").value=42;$("frac").value=0.5;$("err").textContent=""};
+</script>
+</body>
+</html>
